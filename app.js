@@ -36,6 +36,9 @@ const panels = {
 
 document.querySelector("#profileButton").addEventListener("click", openProfile);
 document.querySelectorAll("[data-close-profile]").forEach((button) => button.addEventListener("click", closeProfile));
+document.querySelectorAll("[data-drawer-view]").forEach((button) => {
+  button.addEventListener("click", () => showDrawerView(button.dataset.drawerView));
+});
 
 document.querySelectorAll(".appbar-item").forEach((button) => {
   button.addEventListener("click", () => showStep(button.dataset.step));
@@ -62,6 +65,8 @@ document.querySelector("#userCardList").addEventListener("click", (event) => {
   saveState(`${activeUser().profile.nickname} 데이터로 전환했습니다.`);
   hydrateForms();
   renderAll();
+  showDrawerView("profile");
+  animateUserSwitch();
 });
 
 document.querySelector("#profileForm").addEventListener("submit", (event) => {
@@ -560,11 +565,26 @@ function showStep(step) {
 function openProfile() {
   document.querySelector("#profileDrawer").classList.add("is-open");
   document.querySelector("#profileDrawer").setAttribute("aria-hidden", "false");
+  showDrawerView("profile");
 }
 
 function closeProfile() {
   document.querySelector("#profileDrawer").classList.remove("is-open");
   document.querySelector("#profileDrawer").setAttribute("aria-hidden", "true");
+}
+
+function showDrawerView(view) {
+  document.querySelectorAll("[data-drawer-view-panel]").forEach((panel) => {
+    panel.classList.toggle("is-active", panel.dataset.drawerViewPanel === view);
+  });
+}
+
+function animateUserSwitch() {
+  const drawer = document.querySelector(".drawer-panel");
+  drawer.classList.remove("is-switching");
+  void drawer.offsetWidth;
+  drawer.classList.add("is-switching");
+  window.setTimeout(() => drawer.classList.remove("is-switching"), 520);
 }
 
 function hydrateForms() {
