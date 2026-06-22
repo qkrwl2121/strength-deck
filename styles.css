@@ -343,51 +343,86 @@ label small {
 
 .plan-controls {
   display: grid;
-  gap: 12px;
+  gap: 14px;
   margin: 16px 0;
 }
 
-.segmented,
-.date-tabs {
+.week-select-label {
   display: grid;
   gap: 8px;
 }
 
-.segmented {
-  grid-template-columns: repeat(4, 1fr);
+.week-select-label span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.week-select-label select {
+  width: 100%;
+  min-height: 56px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 0 16px;
+  font-weight: 800;
 }
 
 .date-tabs {
-  grid-template-columns: repeat(3, 1fr);
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 56px;
+  gap: 9px;
+  margin: 0 -14px;
+  padding: 0 14px 6px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
 
-.segmented button,
-.date-tabs button {
-  min-height: 44px;
-  border: 0;
-  border-radius: 9999px;
-  background: var(--surface-2);
-  color: var(--muted);
-  font-weight: 700;
+.date-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .date-tabs button {
   display: grid;
   place-items: center;
-  gap: 2px;
-  border-radius: 8px;
+  gap: 3px;
+  width: 56px;
+  min-height: 56px;
+  border: 0;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #111111;
+  box-shadow: rgba(0, 0, 0, 0.12) 0 0 0 1px inset;
+  font-weight: 700;
+  scroll-snap-align: start;
+  transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease;
 }
 
 .date-tabs span {
-  font-size: 11px;
+  font-size: 16px;
   color: currentColor;
-  opacity: 0.72;
+  font-weight: 900;
+  line-height: 1;
 }
 
-.segmented button.is-active,
+.date-tabs strong {
+  font-size: 10px;
+  line-height: 1;
+}
+
 .date-tabs button.is-active {
   background: var(--green);
   color: #000000;
+  box-shadow: none;
+}
+
+.date-tabs button:active {
+  transform: scale(0.96);
 }
 
 .week-compact {

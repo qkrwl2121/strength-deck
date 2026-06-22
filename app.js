@@ -187,10 +187,8 @@ document.querySelector("#calendarGrid").addEventListener("click", (event) => {
   renderCalendar();
 });
 
-document.querySelector("#weekTabs").addEventListener("click", (event) => {
-  const button = event.target.closest("[data-week]");
-  if (!button) return;
-  selectedPlanWeek = Number(button.dataset.week);
+document.querySelector("#weekSelect").addEventListener("change", (event) => {
+  selectedPlanWeek = Number(event.currentTarget.value);
   renderPlan();
 });
 
@@ -483,16 +481,16 @@ function renderPlan() {
       </article>`
     : "";
 
-  document.querySelector("#weekTabs").innerHTML = [1, 2, 3, 4]
-    .map((week) => `<button class="${week === selectedPlanWeek ? "is-active" : ""}" type="button" data-week="${week}">${week}주</button>`)
+  document.querySelector("#weekSelect").innerHTML = [1, 2, 3, 4]
+    .map((week) => `<option value="${week}" ${week === selectedPlanWeek ? "selected" : ""}>${week}주차</option>`)
     .join("");
 
-  document.querySelector("#dateTabs").innerHTML = [0, 1, 2]
+  document.querySelector("#dateTabs").innerHTML = [0, 1, 2, 3, 4, 5, 6]
     .map((offset) => {
       const date = addDays(new Date(), offset);
-      const label = offset === 0 ? "오늘" : offset === 1 ? "내일" : "다음날";
+      const label = planDayLabel(date, offset);
       return `<button class="${offset === selectedPlanDayOffset ? "is-active" : ""}" type="button" data-offset="${offset}">
-        <strong>${label}</strong><span>${date.getMonth() + 1}/${date.getDate()}</span>
+        <strong>${label}</strong><span>${date.getDate()}</span>
       </button>`;
     })
     .join("");
@@ -514,6 +512,12 @@ function renderSessionCard(session, week = selectedPlanWeek, dayOffset = selecte
 function pickPlanSession(plan, offset) {
   if (!plan?.sessions?.length) return null;
   return plan.sessions[offset % plan.sessions.length];
+}
+
+function planDayLabel(date, offset) {
+  if (offset === 0) return "오늘";
+  if (offset === 1) return "내일";
+  return ["일", "월", "화", "수", "목", "금", "토"][date.getDay()];
 }
 
 function renderLiftSummary(lift) {
