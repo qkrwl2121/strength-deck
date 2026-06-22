@@ -58,6 +58,12 @@ document.querySelector("#addUserForm").addEventListener("submit", (event) => {
 });
 
 document.querySelector("#userCardList").addEventListener("click", (event) => {
+  const deleteButton = event.target.closest("[data-delete-user-id]");
+  if (deleteButton) {
+    deleteUser(deleteButton.dataset.deleteUserId);
+    return;
+  }
+
   const button = event.target.closest("[data-user-id]");
   if (!button) return;
   state.activeUserId = button.dataset.userId;
@@ -401,12 +407,36 @@ function renderUsers() {
     .map((user) => {
       const profile = user.profile;
       const isActive = user.id === current.id;
-      return `<button class="user-card ${isActive ? "is-active" : ""}" type="button" data-user-id="${user.id}">
-        <strong>${profile.nickname}</strong>
-        <span>${profile.weight}${unit(profile)} · 주 ${profile.days}회</span>
-      </button>`;
+      return `<article class="user-card ${isActive ? "is-active" : ""}">
+        <button class="user-card-main" type="button" data-user-id="${user.id}">
+          <strong>${profile.nickname}</strong>
+          <span>${profile.weight}${unit(profile)} · 주 ${profile.days}회</span>
+        </button>
+        <button class="user-delete-button" type="button" data-delete-user-id="${user.id}" aria-label="${profile.nickname} 사용자 삭제">삭제</button>
+      </article>`;
     })
     .join("");
+}
+
+function deleteUser(userId) {
+  if (state.users.length <= 1) {
+    showToast("사용자는 최소 1명 필요합니다.");
+    return;
+  }
+
+  const target = state.users.find((user) => user.id === userId);
+  if (!target) return;
+
+  const ok = window.confirm(`${target.profile.nickname} 사용자를 삭제할까요? 프로필, 1RM, 완료 기록이 함께 삭제됩니다.`);
+  if (!ok) return;
+
+  state.users = state.users.filter((user) => user.id !== userId);
+  if (state.activeUserId === userId) state.activeUserId = state.users[0].id;
+  selectedCalendarDate = isoDate(new Date());
+  saveState(`${target.profile.nickname} 사용자를 삭제했습니다.`);
+  hydrateForms();
+  renderAll();
+  showDrawerView("users");
 }
 
 function renderNutrition() {
