@@ -404,10 +404,23 @@ label small {
 .nutrition-card {
   display: grid;
   gap: 14px;
-  margin-bottom: 18px;
+  margin-bottom: 22px;
   border-radius: 8px;
   background: var(--surface-2);
   padding: 16px;
+}
+
+.today-session {
+  margin-top: 8px;
+}
+
+.today-session .empty-state {
+  background: transparent;
+  padding: 2px 2px 8px;
+}
+
+.today-actions {
+  margin-top: 22px;
 }
 
 .nutrition-head {
