@@ -275,12 +275,20 @@ label small {
   margin-top: 22px;
 }
 
+.cancel-action {
+  margin-top: 10px;
+}
+
 .secondary {
   display: grid;
   place-items: center;
   background: var(--surface-2);
   color: var(--text);
   box-shadow: rgb(124, 124, 124) 0 0 0 1px inset;
+}
+
+.danger-action {
+  color: #f3727f;
 }
 
 .hero-card {
@@ -445,6 +453,10 @@ label small {
 .today-set {
   background: transparent;
   box-shadow: rgba(179, 179, 179, 0.22) 0 0 0 1px inset;
+}
+
+.today-set.is-checked {
+  opacity: 0.4;
 }
 
 .history-panel {

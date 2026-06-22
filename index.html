@@ -41,6 +41,7 @@
             <div class="nutrition-card" id="nutritionCard"></div>
             <div class="session-list" id="todaySession"></div>
             <button class="primary full-action" id="completeSession" type="button">오늘 스트렝스 완료</button>
+            <button class="secondary full-action cancel-action" id="undoCompleteSession" type="button" hidden>오늘 완료 취소</button>
           </div>
           <div class="panel history-panel">
             <div class="section-head">
@@ -216,6 +217,7 @@
             데이터 가져오기
             <input id="importData" type="file" accept="application/json,.json" hidden />
           </label>
+          <button class="secondary danger-action" id="resetData" type="button">데이터 초기화</button>
         </div>
       </section>
     </aside>

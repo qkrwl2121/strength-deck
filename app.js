@@ -111,6 +111,7 @@ document.querySelector("#completeSession").addEventListener("click", () => {
   const doneSets = document.querySelectorAll("#todaySession input:checked").length;
   const totalSets = document.querySelectorAll("#todaySession input").length;
   const session = user.plan.sessions[0];
+  user.todayChecks = user.todayChecks || {};
   user.completedDates[today] = true;
   user.history = (user.history || []).filter((item) => item.isoDate !== today);
   user.history.unshift({
@@ -130,6 +131,29 @@ document.querySelector("#completeSession").addEventListener("click", () => {
   saveState("오늘 스트렝스를 완료했습니다.");
   renderAll();
   showStep("calendar");
+});
+
+document.querySelector("#undoCompleteSession").addEventListener("click", () => {
+  const user = activeUser();
+  const today = isoDate(new Date());
+  delete user.completedDates[today];
+  user.todayChecks = user.todayChecks || {};
+  delete user.todayChecks[today];
+  user.history = (user.history || []).filter((item) => item.isoDate !== today);
+  selectedCalendarDate = today;
+  saveState("오늘 완료를 취소했습니다.");
+  renderAll();
+});
+
+document.querySelector("#todaySession").addEventListener("change", (event) => {
+  if (!event.target.matches("[data-check-id]")) return;
+  const user = activeUser();
+  const today = isoDate(new Date());
+  user.todayChecks = user.todayChecks || {};
+  user.todayChecks[today] = user.todayChecks[today] || {};
+  user.todayChecks[today][event.target.dataset.checkId] = event.target.checked;
+  saveState("", false);
+  renderTodaySession();
 });
 
 document.querySelector("#prevMonth").addEventListener("click", () => {
@@ -179,6 +203,16 @@ document.querySelector("#importData").addEventListener("change", async (event) =
   }
 });
 
+document.querySelector("#resetData").addEventListener("click", () => {
+  const ok = window.confirm("모든 사용자, 프로필, 1RM, 완료 기록을 이 기기에서 삭제할까요?");
+  if (!ok) return;
+  replaceState(normalizeState({}));
+  selectedCalendarDate = isoDate(new Date());
+  saveState("데이터를 초기화했습니다.");
+  hydrateForms();
+  renderAll();
+});
+
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js");
 }
@@ -195,6 +229,7 @@ function createUser(nickname) {
     plan: null,
     history: [],
     completedDates: {},
+    todayChecks: {},
   };
 }
 
@@ -413,16 +448,19 @@ function renderTodaySession() {
 }
 
 function renderTodayLift(lift) {
+  const todayChecks = activeUser().todayChecks?.[isoDate(new Date())] || {};
   return `<section class="today-lift">
     <header><div><h3>${lift.name}</h3><p>현재 1RM ${lift.max}${unit(activeUser().profile)}, 트레이닝 맥스 ${lift.trainingMax}${unit(activeUser().profile)}</p></div><span class="badge">1RM</span></header>
     <div class="sets">${lift.sets
-      .map(
-        (set, index) => `<label class="set-row today-set">
+      .map((set, index) => {
+        const checkId = `${lift.name}-${index}`;
+        const checked = Boolean(todayChecks[checkId]);
+        return `<label class="set-row today-set ${checked ? "is-checked" : ""}">
           <strong>${set.percent}%</strong>
           <span>${set.sets}세트 x ${set.reps}회 · ${set.weight}${unit(activeUser().profile)}</span>
-          <input type="checkbox" aria-label="${lift.name} ${index + 1}번 처방 완료" />
-        </label>`,
-      )
+          <input type="checkbox" data-check-id="${checkId}" aria-label="${lift.name} ${index + 1}번 처방 완료" ${checked ? "checked" : ""} />
+        </label>`;
+      })
       .join("")}</div>
   </section>`;
 }
@@ -519,6 +557,7 @@ function normalizeState(raw) {
     plan: raw?.plan || null,
     history: raw?.history || [],
     completedDates: raw?.completedDates || {},
+    todayChecks: raw?.todayChecks || {},
   });
   return { users: [user], activeUserId: user.id };
 }
@@ -531,6 +570,7 @@ function normalizeUser(user) {
     plan: user.plan || null,
     history: Array.isArray(user.history) ? user.history : [],
     completedDates: user.completedDates || {},
+    todayChecks: user.todayChecks || {},
   };
   next.history.forEach((item) => {
     if (item.isoDate) next.completedDates[item.isoDate] = true;
