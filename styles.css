@@ -299,19 +299,81 @@ label small {
 
 .metric-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
+  grid-template-columns: 1fr;
+  gap: 8px;
   margin-bottom: 16px;
-}
-
-.metric {
+  border-radius: 8px;
+  background: var(--surface);
   padding: 14px;
+  box-shadow: rgba(0, 0, 0, 0.3) 0 8px 8px;
 }
 
-.metric strong {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 22px;
+.metric-row span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 28px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.metric-row strong {
+  color: var(--text);
+  font-size: 16px;
+}
+
+.plan-controls {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.segmented,
+.date-tabs {
+  display: grid;
+  gap: 8px;
+}
+
+.segmented {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.date-tabs {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.segmented button,
+.date-tabs button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.date-tabs button {
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  border-radius: 8px;
+}
+
+.date-tabs span {
+  font-size: 11px;
+  color: currentColor;
+  opacity: 0.72;
+}
+
+.segmented button.is-active,
+.date-tabs button.is-active {
+  background: var(--green);
+  color: #000000;
+}
+
+.week-compact {
+  padding: 16px;
 }
 
 .program-list,
@@ -782,8 +844,7 @@ label small {
 
 @media (max-width: 560px) {
   .grid-form,
-  .max-grid,
-  .metric-row {
+  .max-grid {
     grid-template-columns: 1fr;
   }
 

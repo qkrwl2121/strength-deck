@@ -24,6 +24,8 @@ const defaultProfile = {
 const state = normalizeState(loadState());
 let calendarCursor = new Date();
 let selectedCalendarDate = isoDate(new Date());
+let selectedPlanWeek = 1;
+let selectedPlanDayOffset = 0;
 
 const panels = {
   today: document.querySelector("#todayStep"),
@@ -171,6 +173,20 @@ document.querySelector("#calendarGrid").addEventListener("click", (event) => {
   if (!button) return;
   selectedCalendarDate = button.dataset.date;
   renderCalendar();
+});
+
+document.querySelector("#weekTabs").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-week]");
+  if (!button) return;
+  selectedPlanWeek = Number(button.dataset.week);
+  renderPlan();
+});
+
+document.querySelector("#dateTabs").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-offset]");
+  if (!button) return;
+  selectedPlanDayOffset = Number(button.dataset.offset);
+  renderPlan();
 });
 
 document.querySelector("#exportData").addEventListener("click", () => {
@@ -407,25 +423,47 @@ function renderPlan() {
   document.querySelector("#planTitle").textContent = plan?.title || "계획이 아직 없습니다.";
   document.querySelector("#planSummary").textContent = plan?.summary || "마이페이지에서 프로필을 저장하고 1RM을 입력해 주세요.";
   document.querySelector("#metricRow").innerHTML = (plan?.metrics || [])
-    .map(([label, value]) => `<article class="metric"><strong>${value}</strong><span>${label}</span></article>`)
+    .map(([label, value]) => `<span><strong>${value}</strong>${label}</span>`)
     .join("");
-  document.querySelector("#weekList").innerHTML = (plan?.weeks || [])
-    .map(
-      ([week, title, percent, sets]) => `<article class="exercise-card">
-        <header><div><h3>${week}: ${title}</h3><p>${sets}</p></div><span class="badge">${percent}</span></header>
-      </article>`,
-    )
+
+  const currentWeek = plan?.weeks?.[selectedPlanWeek - 1];
+  document.querySelector("#weekList").innerHTML = currentWeek
+    ? `<article class="exercise-card week-compact">
+        <header><div><h3>${currentWeek[0]}: ${currentWeek[1]}</h3><p>${currentWeek[3]}</p></div><span class="badge">${currentWeek[2]}</span></header>
+      </article>`
+    : "";
+
+  document.querySelector("#weekTabs").innerHTML = [1, 2, 3, 4]
+    .map((week) => `<button class="${week === selectedPlanWeek ? "is-active" : ""}" type="button" data-week="${week}">${week}주</button>`)
     .join("");
-  document.querySelector("#programList").innerHTML = plan?.sessions?.length
-    ? plan.sessions.map(renderSessionCard).join("")
+
+  document.querySelector("#dateTabs").innerHTML = [0, 1, 2]
+    .map((offset) => {
+      const date = addDays(new Date(), offset);
+      const label = offset === 0 ? "오늘" : offset === 1 ? "내일" : "다음날";
+      return `<button class="${offset === selectedPlanDayOffset ? "is-active" : ""}" type="button" data-offset="${offset}">
+        <strong>${label}</strong><span>${date.getMonth() + 1}/${date.getDate()}</span>
+      </button>`;
+    })
+    .join("");
+
+  const selectedSession = pickPlanSession(plan, selectedPlanDayOffset);
+  document.querySelector("#programList").innerHTML = selectedSession
+    ? renderSessionCard(selectedSession, selectedPlanWeek, selectedPlanDayOffset)
     : `<div class="empty-state">1RM을 입력하면 4주 블록과 오늘 세션이 생성됩니다.</div>`;
 }
 
-function renderSessionCard(session) {
+function renderSessionCard(session, week = selectedPlanWeek, dayOffset = selectedPlanDayOffset) {
+  const date = addDays(new Date(), dayOffset);
   return `<article class="exercise-card">
-    <header><div><h3>${session.title}</h3><p>${session.note}</p></div><span class="badge">${session.lifts.length} lifts</span></header>
+    <header><div><h3>${session.title}</h3><p>${week}주차 · ${date.getMonth() + 1}/${date.getDate()} · ${session.note}</p></div><span class="badge">${session.lifts.length} lifts</span></header>
     <div class="sets">${session.lifts.map(renderLiftSummary).join("") || `<p>입력된 1RM이 없어 처방을 만들 수 없습니다.</p>`}</div>
   </article>`;
+}
+
+function pickPlanSession(plan, offset) {
+  if (!plan?.sessions?.length) return null;
+  return plan.sessions[offset % plan.sessions.length];
 }
 
 function renderLiftSummary(lift) {
@@ -671,6 +709,12 @@ function isoDate(date) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function addDays(date, days) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
 }
 
 function formatKoreanDate(value) {
