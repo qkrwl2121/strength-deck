@@ -296,7 +296,7 @@ function buildPlan(profile = {}, maxes = {}) {
 
   return {
     title: `${sessionsPerWeek}회 보강 / ${focus}`,
-    summary: `${profile.nickname || "사용자"} · ${profile.height || "-"}cm, ${profile.weight || "-"}${unit(profile)}, ${activity || "운동 정보 없음"} 기준. 1RM의 70-88%에서 시작합니다.`,
+    summary: `${profile.nickname || "사용자"} · ${profile.height || "-"}cm, ${profile.weight || "-"}kg, ${activity || "운동 정보 없음"} 기준. 1RM의 70-88%에서 시작합니다.`,
     metrics: [
       ["주 보강", `${sessionsPerWeek}회`],
       ["강도 범위", "70-88%"],
@@ -410,7 +410,7 @@ function renderUsers() {
       return `<article class="user-card ${isActive ? "is-active" : ""}">
         <button class="user-card-main" type="button" data-user-id="${user.id}">
           <strong>${profile.nickname}</strong>
-          <span>${profile.weight}${unit(profile)} · 주 ${profile.days}회</span>
+          <span>${profile.weight}kg · 주 ${profile.days}회</span>
         </button>
         <button class="user-delete-button" type="button" data-delete-user-id="${user.id}" aria-label="${profile.nickname} 사용자 삭제">삭제</button>
       </article>`;
@@ -441,7 +441,7 @@ function deleteUser(userId) {
 
 function renderNutrition() {
   const profile = activeUser().profile;
-  const bodyWeightKg = unit(profile) === "lb" ? number(profile.weight) / 2.20462 : number(profile.weight);
+  const bodyWeightKg = number(profile.weight);
   const days = number(profile.days) || 3;
   const isCrossfit = /크로스핏|crossfit/i.test(profile.activity || "");
   const activityFactor = days >= 6 ? 34 : days >= 4 ? 32 : 30;
@@ -707,7 +707,6 @@ function rebuildPlanIfPossible(user) {
 
 function convertStoredWeights(user, fromUnit, toUnit) {
   const factor = fromUnit === "kg" && toUnit === "lb" ? 2.20462 : fromUnit === "lb" && toUnit === "kg" ? 1 / 2.20462 : 1;
-  if (user.profile.weight) user.profile.weight = roundToTenth(user.profile.weight * factor);
   Object.keys(user.maxes || {}).forEach((key) => {
     if (user.maxes[key]) user.maxes[key] = roundLoad(user.maxes[key] * factor, toUnit);
   });
@@ -715,9 +714,6 @@ function convertStoredWeights(user, fromUnit, toUnit) {
 
 function updateUnitLabels() {
   const unitLabel = unit(activeUser().profile);
-  document.querySelectorAll(".unit-label").forEach((label) => {
-    label.textContent = unitLabel;
-  });
   document.querySelectorAll("#maxForm input").forEach((input) => {
     input.placeholder = unitLabel;
   });
