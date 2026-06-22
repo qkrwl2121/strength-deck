@@ -236,7 +236,21 @@ document.querySelector("#resetData").addEventListener("click", () => {
 });
 
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js");
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (refreshing) return;
+    refreshing = true;
+    window.location.reload();
+  });
+
+  window.addEventListener("load", async () => {
+    try {
+      const registration = await navigator.serviceWorker.register("sw.js");
+      registration.update();
+    } catch {
+      showToast("앱 업데이트 확인에 실패했습니다.");
+    }
+  });
 }
 
 hydrateForms();
