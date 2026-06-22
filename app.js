@@ -131,6 +131,7 @@ document.querySelector("#completeSession").addEventListener("click", () => {
   user.history = user.history.slice(0, 30);
   selectedCalendarDate = today;
   saveState("오늘 스트렝스를 완료했습니다.");
+  launchConfetti();
   renderAll();
   showStep("calendar");
 });
@@ -677,6 +678,31 @@ function showToast(message) {
   toast.classList.add("is-visible");
   window.clearTimeout(showToast.timer);
   showToast.timer = window.setTimeout(() => toast.classList.remove("is-visible"), 2200);
+}
+
+function launchConfetti() {
+  const layer = document.querySelector("#confettiLayer");
+  const colors = ["#1ed760", "#ffffff", "#539df5", "#ffa42b", "#f3727f"];
+  layer.innerHTML = "";
+
+  for (let index = 0; index < 32; index += 1) {
+    const piece = document.createElement("span");
+    const angle = (Math.PI * 2 * index) / 32;
+    const distance = 90 + Math.random() * 120;
+    piece.style.setProperty("--x", `${Math.cos(angle) * distance}px`);
+    piece.style.setProperty("--y", `${Math.sin(angle) * distance - 80}px`);
+    piece.style.setProperty("--r", `${Math.random() * 360}deg`);
+    piece.style.background = colors[index % colors.length];
+    layer.appendChild(piece);
+  }
+
+  layer.classList.remove("is-active");
+  void layer.offsetWidth;
+  layer.classList.add("is-active");
+  window.setTimeout(() => {
+    layer.classList.remove("is-active");
+    layer.innerHTML = "";
+  }, 1000);
 }
 
 function number(value) {

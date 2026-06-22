@@ -812,6 +812,43 @@ label small {
   transform: translate(-50%, 0);
 }
 
+.confetti-layer {
+  position: fixed;
+  left: 50%;
+  top: 44%;
+  z-index: 90;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.confetti-layer span {
+  position: absolute;
+  width: 9px;
+  height: 14px;
+  border-radius: 2px;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+}
+
+.confetti-layer.is-active span {
+  animation: confetti-pop 0.9s cubic-bezier(0.15, 0.9, 0.25, 1) forwards;
+}
+
+@keyframes confetti-pop {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.3) rotate(0deg);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(1) rotate(var(--r));
+  }
+}
+
 @keyframes panel-in {
   from {
     opacity: 0;
