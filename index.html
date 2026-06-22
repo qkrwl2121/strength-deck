@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#121212" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Strength Deck" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Strength Deck</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-mark" aria-label="Strength Deck">
+          <svg viewBox="0 0 40 40" aria-hidden="true">
+            <circle class="logo-disc" cx="20" cy="20" r="18" />
+            <path class="logo-bar" d="M10 21h20" />
+            <path class="logo-plate" d="M8 15v12M13 17v8M27 17v8M32 15v12" />
+            <path class="logo-spark" d="M20 9l2.2 5.4L28 16.6l-5.8 2.1L20 24l-2.2-5.3L12 16.6l5.8-2.2L20 9Z" />
+          </svg>
+        </div>
+        <button class="user-button" id="profileButton" type="button" aria-label="마이페이지 열기">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 8a7 7 0 0 0-14 0" />
+          </svg>
+        </button>
+      </header>
+
+      <main>
+        <section class="step-panel is-active" id="todayStep">
+          <div class="panel">
+            <div class="section-head">
+              <p class="eyebrow">Today</p>
+              <h1>오늘의 스트렝스</h1>
+              <p id="todayHint">프로필과 1RM을 입력하면 오늘 진행할 세션이 생성됩니다.</p>
+            </div>
+            <div class="nutrition-card" id="nutritionCard"></div>
+            <div class="session-list" id="todaySession"></div>
+            <button class="primary" id="completeSession" type="button">오늘 스트렝스 완료</button>
+          </div>
+          <div class="panel history-panel">
+            <div class="section-head">
+              <h2>완료 기록</h2>
+              <p>이 기기 안에만 저장됩니다.</p>
+            </div>
+            <div id="historyList" class="history-list"></div>
+          </div>
+        </section>
+
+        <section class="panel step-panel" id="maxesStep">
+          <div class="section-head">
+            <p class="eyebrow">One Rep Max</p>
+            <h1>현재 1RM</h1>
+            <p>현재 최고 중량을 입력하면 70-88% 범위로 스트렝스 처방을 만듭니다.</p>
+          </div>
+
+          <form class="max-grid" id="maxForm">
+            <label><span>백스쿼트</span><input name="backSquat" inputmode="decimal" type="number" min="0" step="0.5" placeholder="kg" /></label>
+            <label><span>프론트스쿼트</span><input name="frontSquat" inputmode="decimal" type="number" min="0" step="0.5" placeholder="kg" /></label>
+            <label><span>데드리프트</span><input name="deadlift" inputmode="decimal" type="number" min="0" step="0.5" placeholder="kg" /></label>
+            <label><span>푸시프레스</span><input name="pushPress" inputmode="decimal" type="number" min="0" step="0.5" placeholder="kg" /></label>
+            <label><span>스내치</span><input name="snatch" inputmode="decimal" type="number" min="0" step="0.5" placeholder="kg" /></label>
+            <label><span>클린 & 저크</span><input name="cleanJerk" inputmode="decimal" type="number" min="0" step="0.5" placeholder="kg" /></label>
+            <button class="primary wide" type="submit">프로그램 생성</button>
+          </form>
+        </section>
+
+        <section class="step-panel" id="planStep">
+          <div class="hero-card">
+            <div>
+              <p class="eyebrow">4 Week Block</p>
+              <h1 id="planTitle">계획이 아직 없습니다.</h1>
+              <p id="planSummary">마이페이지에서 프로필을 저장하고 1RM을 입력해 주세요.</p>
+            </div>
+          </div>
+
+          <div class="metric-row" id="metricRow"></div>
+          <div class="program-list week-list" id="weekList"></div>
+          <div class="program-list" id="programList"></div>
+        </section>
+
+        <section class="step-panel" id="calendarStep">
+          <div class="panel">
+            <div class="section-head">
+              <p class="eyebrow">Calendar</p>
+              <h1>달력</h1>
+              <p>오늘 스트렝스를 완료하면 해당 날짜에 체크가 표시됩니다.</p>
+            </div>
+            <div class="calendar-head">
+              <button class="ghost-button" type="button" id="prevMonth" aria-label="이전 달">‹</button>
+              <strong id="calendarTitle"></strong>
+              <button class="ghost-button" type="button" id="nextMonth" aria-label="다음 달">›</button>
+            </div>
+            <div class="calendar-grid calendar-weekdays" aria-hidden="true">
+              <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
+            </div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+            <div class="calendar-detail" id="calendarDetail"></div>
+          </div>
+        </section>
+      </main>
+
+      <nav class="bottom-appbar" aria-label="주요 메뉴">
+        <button class="appbar-item is-active" type="button" data-step="today">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h4l2-6 4 12 2-6h4" /></svg>
+          </span>
+          오늘
+        </button>
+        <button class="appbar-item" type="button" data-step="maxes">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14M18 5v14M3 9v6M21 9v6M6 12h12" /></svg>
+          </span>
+          1RM
+        </button>
+        <button class="appbar-item" type="button" data-step="plan">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg>
+          </span>
+          계획
+        </button>
+        <button class="appbar-item" type="button" data-step="calendar">
+          <span class="nav-icon" id="calendarNavIcon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v4M17 3v4M4 8h16M5 5h14v16H5z" /></svg>
+          </span>
+          달력
+        </button>
+      </nav>
+    </div>
+
+    <aside class="profile-drawer" id="profileDrawer" aria-hidden="true">
+      <div class="drawer-backdrop" data-close-profile></div>
+      <section class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
+        <div class="drawer-head">
+          <div>
+            <p class="eyebrow">My Page</p>
+            <h2 id="profileTitle">마이페이지</h2>
+          </div>
+          <button class="ghost-button" type="button" data-close-profile aria-label="닫기">×</button>
+        </div>
+
+        <form class="grid-form" id="profileForm">
+          <label>
+            <span>키</span>
+            <input name="height" inputmode="decimal" type="number" min="120" max="230" step="0.1" value="160" />
+            <small>cm</small>
+          </label>
+          <label>
+            <span>몸무게</span>
+            <input name="weight" inputmode="decimal" type="number" min="30" max="400" step="0.1" value="50" />
+            <small class="unit-label">kg</small>
+          </label>
+          <label>
+            <span>중량 단위</span>
+            <select name="unit" id="unitSelect">
+              <option value="kg" selected>kg</option>
+              <option value="lb">lb</option>
+            </select>
+          </label>
+          <label>
+            <span>주 운동 횟수</span>
+            <select name="days">
+              <option value="2">주 2회</option>
+              <option value="3">주 3회</option>
+              <option value="4">주 4회</option>
+              <option value="5">주 5회</option>
+              <option value="6">주 6회 이상</option>
+            </select>
+          </label>
+          <label class="wide">
+            <span>하고 있는 운동</span>
+            <input name="activity" type="text" value="크로스핏" placeholder="예: 크로스핏, 역도, 파워리프팅" />
+          </label>
+          <label>
+            <span>목표</span>
+            <select name="goal">
+              <option value="olympic">역도 전이</option>
+              <option value="power">순수 힘</option>
+              <option value="mixed">역도 + 파워리프팅</option>
+            </select>
+          </label>
+          <label>
+            <span>회복 상태</span>
+            <select name="recovery">
+              <option value="low">피로가 많음</option>
+              <option value="normal">보통</option>
+              <option value="high">회복이 좋음</option>
+            </select>
+          </label>
+          <button class="primary wide" type="submit">프로필 저장</button>
+        </form>
+
+        <div class="drawer-actions">
+          <button class="secondary" id="exportData" type="button">데이터 내보내기</button>
+          <label class="secondary import-button">
+            데이터 가져오기
+            <input id="importData" type="file" accept="application/json,.json" hidden />
+          </label>
+        </div>
+      </section>
+    </aside>
+
+    <script src="app.js"></script>
+  </body>
+</html>
