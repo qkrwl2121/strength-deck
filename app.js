@@ -187,10 +187,23 @@ document.querySelector("#calendarGrid").addEventListener("click", (event) => {
   renderCalendar();
 });
 
-document.querySelector("#weekSelect").addEventListener("change", (event) => {
-  selectedPlanWeek = Number(event.currentTarget.value);
-  renderPlan();
-});
+const weekSelect = document.querySelector("#weekSelect");
+if (weekSelect) {
+  weekSelect.addEventListener("change", (event) => {
+    selectedPlanWeek = Number(event.currentTarget.value);
+    renderPlan();
+  });
+}
+
+const legacyWeekTabs = document.querySelector("#weekTabs");
+if (legacyWeekTabs) {
+  legacyWeekTabs.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-week]");
+    if (!button) return;
+    selectedPlanWeek = Number(button.dataset.week);
+    renderPlan();
+  });
+}
 
 document.querySelector("#dateTabs").addEventListener("click", (event) => {
   const button = event.target.closest("[data-offset]");
@@ -481,9 +494,19 @@ function renderPlan() {
       </article>`
     : "";
 
-  document.querySelector("#weekSelect").innerHTML = [1, 2, 3, 4]
-    .map((week) => `<option value="${week}" ${week === selectedPlanWeek ? "selected" : ""}>${week}주차</option>`)
-    .join("");
+  const weekSelect = document.querySelector("#weekSelect");
+  if (weekSelect) {
+    weekSelect.innerHTML = [1, 2, 3, 4]
+      .map((week) => `<option value="${week}" ${week === selectedPlanWeek ? "selected" : ""}>${week}주차</option>`)
+      .join("");
+  }
+
+  const legacyWeekTabs = document.querySelector("#weekTabs");
+  if (legacyWeekTabs) {
+    legacyWeekTabs.innerHTML = [1, 2, 3, 4]
+      .map((week) => `<button class="${week === selectedPlanWeek ? "is-active" : ""}" type="button" data-week="${week}">${week}주</button>`)
+      .join("");
+  }
 
   document.querySelector("#dateTabs").innerHTML = [0, 1, 2, 3, 4, 5, 6]
     .map((offset) => {
