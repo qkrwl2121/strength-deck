@@ -284,6 +284,12 @@ label small {
   color: #000000;
 }
 
+.primary:disabled {
+  cursor: not-allowed;
+  background: #3a3a3a;
+  color: #8f8f8f;
+}
+
 .primary.is-complete {
   background: var(--text);
 }
@@ -317,7 +323,7 @@ label small {
 
 .metric-row {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin-bottom: 16px;
   border-radius: 8px;
@@ -327,18 +333,28 @@ label small {
 }
 
 .metric-row span {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 28px;
+  display: grid;
+  gap: 5px;
+  min-height: 54px;
+  place-items: center;
+  text-align: center;
   color: var(--muted);
   font-size: 13px;
 }
 
+.metric-row span + span {
+  border-left: 1px solid rgba(179, 179, 179, 0.14);
+}
+
+.metric-row small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
 .metric-row strong {
   color: var(--text);
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .plan-controls {
@@ -372,10 +388,11 @@ label small {
 .date-tabs {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: 56px;
-  gap: 9px;
-  margin: 0 -14px;
-  padding: 0 14px 6px;
+  grid-auto-columns: 60px;
+  justify-content: start;
+  gap: 10px;
+  margin: 0;
+  padding: 8px 2px 12px;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scroll-snap-type: x mandatory;
@@ -390,14 +407,14 @@ label small {
 .date-tabs button {
   display: grid;
   place-items: center;
-  gap: 3px;
-  width: 56px;
-  min-height: 56px;
+  gap: 5px;
+  width: 60px;
+  min-height: 60px;
   border: 0;
-  border-radius: 6px;
-  background: #ffffff;
-  color: #111111;
-  box-shadow: rgba(0, 0, 0, 0.12) 0 0 0 1px inset;
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  box-shadow: rgba(179, 179, 179, 0.18) 0 0 0 1px inset;
   font-weight: 700;
   scroll-snap-align: start;
   transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease;
@@ -824,6 +841,18 @@ label small {
 
 .calendar-summary {
   animation: panel-in 0.22s ease both;
+}
+
+.calendar-undo {
+  justify-self: end;
+  min-height: 34px;
+  border: 0;
+  border-radius: 9999px;
+  background: rgba(243, 114, 127, 0.12);
+  color: #f3727f;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .user-section {

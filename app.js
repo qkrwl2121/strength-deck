@@ -123,6 +123,10 @@ document.querySelector("#completeSession").addEventListener("click", () => {
   const today = isoDate(new Date());
   const doneSets = document.querySelectorAll("#todaySession input:checked").length;
   const totalSets = document.querySelectorAll("#todaySession input").length;
+  if (totalSets > 0 && doneSets < totalSets) {
+    showToast("위 세트를 모두 체크하면 완료할 수 있습니다.");
+    return;
+  }
   const session = user.plan.sessions[0];
   user.todayChecks = user.todayChecks || {};
   user.completedDates[today] = true;
@@ -148,15 +152,7 @@ document.querySelector("#completeSession").addEventListener("click", () => {
 });
 
 document.querySelector("#undoCompleteSession").addEventListener("click", () => {
-  const user = activeUser();
-  const today = isoDate(new Date());
-  delete user.completedDates[today];
-  user.todayChecks = user.todayChecks || {};
-  delete user.todayChecks[today];
-  user.history = (user.history || []).filter((item) => item.isoDate !== today);
-  selectedCalendarDate = today;
-  saveState("오늘 완료를 취소했습니다.");
-  renderAll();
+  undoCompletion(isoDate(new Date()));
 });
 
 document.querySelector("#todaySession").addEventListener("change", (event) => {
@@ -185,6 +181,12 @@ document.querySelector("#calendarGrid").addEventListener("click", (event) => {
   if (!button) return;
   selectedCalendarDate = button.dataset.date;
   renderCalendar();
+});
+
+document.querySelector("#calendarDetail").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-undo-date]");
+  if (!button) return;
+  undoCompletion(button.dataset.undoDate);
 });
 
 const weekSelect = document.querySelector("#weekSelect");
@@ -300,97 +302,167 @@ function buildPlan(profile = {}, maxes = {}) {
   const available = Object.entries(maxes).filter(([, value]) => value > 0);
   const focus =
     profile.goal === "power"
-      ? "스쿼트, 데드리프트, 프레스 중심"
+      ? "스쿼트 · 데드리프트 · 프레스"
       : profile.goal === "mixed"
-        ? "스쿼트, 풀, 올림픽 리프트 균형"
-        : "스쿼트 강도와 스내치/클린 전이";
+        ? "스쿼트 · 스내치 · 클린"
+        : "스내치 · 클린 · 하체 힘";
+  const weeks = buildWeeks(highSportLoad, volumeBias);
+  const weekSessions = weeks.map((week) => buildSessions(maxes, sessionsPerWeek, volumeBias, week.week));
 
   return {
-    title: `${sessionsPerWeek}회 보강 / ${focus}`,
-    summary: `${profile.nickname || "사용자"} · ${profile.height || "-"}cm, ${profile.weight || "-"}kg, ${activity || "운동 정보 없음"} 기준. 1RM의 70-88%에서 시작합니다.`,
+    title: `${focus} 중심 4주 계획`,
+    summary: `${profile.nickname || "사용자"} · ${profile.height || "-"}cm, ${profile.weight || "-"}kg, ${activity || "운동 정보 없음"} 기준. 매주 운동 종류와 강도를 바꿔서 힘을 올립니다.`,
     metrics: [
-      ["주 보강", `${sessionsPerWeek}회`],
-      ["강도 범위", "70-88%"],
-      ["입력 1RM", `${available.length}개`],
+      ["주 운동", `${sessionsPerWeek}회`],
+      ["강도", "65-88%"],
+      ["1RM 입력", `${available.length}개`],
     ],
-    weeks: buildWeeks(highSportLoad, volumeBias),
-    sessions: buildSessions(maxes, sessionsPerWeek, volumeBias),
+    weeks,
+    sessions: weekSessions[0] || [],
+    weekSessions,
   };
 }
 
 function buildWeeks(highSportLoad, volumeBias) {
-  const setAdjust = volumeBias > 0 ? "+1세트" : volumeBias < 0 || highSportLoad ? "-1세트" : "기본";
+  const setAdjust = volumeBias > 0 ? "세트 조금 추가" : volumeBias < 0 || highSportLoad ? "세트 조금 줄임" : "기본 세트";
   return [
-    ["1주", "기술 유지 + 볼륨", "70-78%", `주요 리프트 4x3, 보조 3x3 (${setAdjust})`],
-    ["2주", "강도 상승", "75-84%", `주요 리프트 4x2, 싱글 2-3회 (${setAdjust})`],
-    ["3주", "고강도 노출", "80-88%", "주요 리프트 3x2 후 85-88% 싱글 2회"],
-    ["4주", "회복 + 테스트 준비", "65-75%", "가벼운 3x2, 속도 유지, 실패 세트 금지"],
+    { week: 1, name: "기본 힘 만들기", range: "70-78%", note: `스쿼트와 기본 리프트를 안정적으로 반복합니다. ${setAdjust}` },
+    { week: 2, name: "무게 올리기", range: "75-84%", note: `스쿼트, 클린, 프레스 무게를 올리고 반복 수를 줄입니다. ${setAdjust}` },
+    { week: 3, name: "무거운 중량 적응", range: "80-88%", note: "무거운 1-2회 세트로 힘을 확인합니다. 실패할 것 같으면 바로 중단합니다." },
+    { week: 4, name: "회복과 속도", range: "65-75%", note: "가볍게 빠르게 움직이며 다음 4주를 준비합니다." },
   ];
 }
 
-function buildSessions(maxes, sessionsPerWeek, volumeBias) {
+function buildSessions(maxes, sessionsPerWeek, volumeBias, week = 1) {
   const baseSets = volumeBias > 0 ? 5 : volumeBias < 0 ? 3 : 4;
-  const sessions = [
-    {
-      title: "Day A: 스쿼트 힘 + 역도 풀",
-      note: "하체 최대힘을 만들고 스내치/클린의 당기는 힘으로 연결합니다.",
-      lifts: [
-        prescription("backSquat", maxes.backSquat, [
-          [70, baseSets, 3],
-          [78, baseSets, 2],
-          [84, 3, 1],
-        ]),
-        prescription("snatch", maxes.snatch, [
-          [65, 5, 2],
-          [72, 4, 2],
-        ]),
-        prescription("deadlift", maxes.deadlift, [[78, 3, 3]]),
-      ],
-    },
-    {
-      title: "Day B: 프론트스쿼트 + 오버헤드 힘",
-      note: "클린 회복 자세와 저크/프레스 전이를 우선합니다.",
-      lifts: [
-        prescription("frontSquat", maxes.frontSquat, [
-          [72, baseSets, 3],
-          [80, 3, 2],
-          [86, 3, 1],
-        ]),
-        prescription("cleanJerk", maxes.cleanJerk, [
-          [65, 5, 1],
-          [75, 4, 1],
-        ]),
-        prescription("pushPress", maxes.pushPress, [
-          [70, baseSets, 3],
-          [78, 3, 2],
-        ]),
-      ],
-    },
-  ];
+  const weekPlans = {
+    1: [
+      {
+        title: "스쿼트 + 스내치 기본",
+        note: "백스쿼트로 하체 힘을 만들고 스내치 동작을 안정적으로 반복합니다.",
+        lifts: [
+          prescription("backSquat", maxes.backSquat, [[72, baseSets, 3], [78, 3, 2]], "백스쿼트"),
+          prescription("snatch", maxes.snatch, [[65, 5, 2], [72, 3, 2]], "스내치"),
+          prescription("deadlift", maxes.deadlift, [[74, 3, 3]], "데드리프트"),
+        ],
+      },
+      {
+        title: "프론트스쿼트 + 클린",
+        note: "클린을 받는 자세와 상체 버티는 힘을 같이 올립니다.",
+        lifts: [
+          prescription("frontSquat", maxes.frontSquat, [[72, baseSets, 3], [78, 3, 2]], "프론트스쿼트"),
+          prescription("cleanJerk", maxes.cleanJerk, [[65, 5, 1], [72, 4, 1]], "클린 & 저크"),
+          prescription("pushPress", maxes.pushPress, [[70, 4, 3]], "푸시프레스"),
+        ],
+      },
+      {
+        title: "데드리프트 + 하체 강화",
+        note: "당기는 힘과 스쿼트 반복 능력을 함께 가져갑니다.",
+        lifts: [
+          prescription("deadlift", maxes.deadlift, [[72, 4, 3], [80, 2, 2]], "데드리프트"),
+          prescription("backSquat", maxes.backSquat, [[68, 4, 4]], "가벼운 백스쿼트"),
+          prescription("snatch", maxes.snatch, [[68, 5, 1]], "스내치 싱글"),
+        ],
+      },
+    ],
+    2: [
+      {
+        title: "무게 올린 스쿼트",
+        note: "반복 수를 줄이고 스쿼트 무게를 올립니다.",
+        lifts: [
+          prescription("backSquat", maxes.backSquat, [[76, baseSets, 2], [82, 3, 2], [85, 2, 1]], "백스쿼트"),
+          prescription("snatch", maxes.snatch, [[70, 4, 2], [76, 3, 1]], "스내치"),
+          prescription("deadlift", maxes.deadlift, [[80, 3, 2]], "데드리프트"),
+        ],
+      },
+      {
+        title: "클린 힘 + 프레스",
+        note: "클린 무게와 머리 위로 밀어내는 힘을 올립니다.",
+        lifts: [
+          prescription("frontSquat", maxes.frontSquat, [[76, 4, 2], [83, 3, 1]], "프론트스쿼트"),
+          prescription("cleanJerk", maxes.cleanJerk, [[70, 4, 1], [78, 3, 1]], "클린 & 저크"),
+          prescription("pushPress", maxes.pushPress, [[74, 4, 2], [80, 2, 2]], "푸시프레스"),
+        ],
+      },
+      {
+        title: "스내치 풀 + 하체",
+        note: "스내치보다 무겁게 당기고 하체 보조 운동을 더합니다.",
+        lifts: [
+          prescription("snatch", maxes.snatch, [[90, 4, 2]], "스내치 풀"),
+          prescription("backSquat", maxes.backSquat, [[74, 4, 3]], "정지 백스쿼트"),
+          prescription("deadlift", maxes.deadlift, [[82, 3, 2]], "데드리프트"),
+        ],
+      },
+    ],
+    3: [
+      {
+        title: "무거운 스쿼트",
+        note: "가장 무거운 주입니다. 좋은 자세로 가능한 세트만 진행합니다.",
+        lifts: [
+          prescription("backSquat", maxes.backSquat, [[80, 3, 2], [86, 2, 1], [88, 1, 1]], "백스쿼트"),
+          prescription("snatch", maxes.snatch, [[74, 3, 1], [80, 3, 1]], "스내치"),
+          prescription("deadlift", maxes.deadlift, [[84, 3, 1]], "데드리프트"),
+        ],
+      },
+      {
+        title: "클린 + 프론트스쿼트",
+        note: "클린 받는 힘과 프론트스쿼트 고중량 적응을 합니다.",
+        lifts: [
+          prescription("frontSquat", maxes.frontSquat, [[80, 3, 2], [86, 2, 1]], "프론트스쿼트"),
+          prescription("cleanJerk", maxes.cleanJerk, [[76, 3, 1], [82, 2, 1]], "클린 & 저크"),
+          prescription("pushPress", maxes.pushPress, [[78, 3, 2], [84, 2, 1]], "푸시프레스"),
+        ],
+      },
+      {
+        title: "클린 풀 + 코어 힘",
+        note: "강하게 당기고 몸통이 무너지지 않게 버티는 날입니다.",
+        lifts: [
+          prescription("cleanJerk", maxes.cleanJerk, [[95, 4, 2]], "클린 풀"),
+          prescription("deadlift", maxes.deadlift, [[86, 2, 1]], "데드리프트"),
+          prescription("backSquat", maxes.backSquat, [[76, 3, 3]], "백스쿼트"),
+        ],
+      },
+    ],
+    4: [
+      {
+        title: "빠른 스쿼트",
+        note: "무게를 낮추고 빠르고 깔끔하게 움직입니다.",
+        lifts: [
+          prescription("backSquat", maxes.backSquat, [[65, 4, 2], [72, 3, 2]], "백스쿼트"),
+          prescription("snatch", maxes.snatch, [[60, 5, 1], [68, 3, 1]], "스내치"),
+          prescription("deadlift", maxes.deadlift, [[70, 3, 2]], "데드리프트"),
+        ],
+      },
+      {
+        title: "가벼운 클린 + 프레스",
+        note: "회복을 해치지 않으면서 기술과 속도를 유지합니다.",
+        lifts: [
+          prescription("frontSquat", maxes.frontSquat, [[65, 4, 2], [72, 3, 2]], "프론트스쿼트"),
+          prescription("cleanJerk", maxes.cleanJerk, [[62, 5, 1], [70, 3, 1]], "클린 & 저크"),
+          prescription("pushPress", maxes.pushPress, [[65, 4, 2]], "푸시프레스"),
+        ],
+      },
+      {
+        title: "하체 강화 정리",
+        note: "다음 계획으로 넘어가기 전 피로를 남기지 않습니다.",
+        lifts: [
+          prescription("deadlift", maxes.deadlift, [[70, 3, 2]], "데드리프트"),
+          prescription("backSquat", maxes.backSquat, [[65, 3, 3]], "가벼운 백스쿼트"),
+          prescription("snatch", maxes.snatch, [[65, 4, 1]], "스내치 싱글"),
+        ],
+      },
+    ],
+  };
 
-  if (sessionsPerWeek >= 3) {
-    sessions.push({
-      title: "Day C: 데드리프트 + 폭발력",
-      note: "순수 당기는 힘과 바벨 가속을 분리해서 가져갑니다.",
-      lifts: [
-        prescription("deadlift", maxes.deadlift, [
-          [72, 4, 3],
-          [82, 3, 2],
-          [88, 2, 1],
-        ]),
-        prescription("backSquat", maxes.backSquat, [[68, 4, 4]]),
-        prescription("snatch", maxes.snatch, [[70, 6, 1]]),
-      ],
-    });
-  }
+  const sessions = weekPlans[week] || weekPlans[1];
 
-  return sessions.map((session) => ({ ...session, lifts: session.lifts.filter(Boolean) }));
+  return sessions.slice(0, sessionsPerWeek).map((session) => ({ ...session, lifts: session.lifts.filter(Boolean) }));
 }
 
-function prescription(key, max, waves) {
+function prescription(key, max, waves, label = lifts[key]) {
   if (!max) return null;
   return {
-    name: lifts[key],
+    name: label,
     max,
     trainingMax: roundLoad(max * 0.9),
     sets: waves.map(([percent, sets, reps]) => ({
@@ -484,13 +556,13 @@ function renderPlan() {
   document.querySelector("#planTitle").textContent = plan?.title || "계획이 아직 없습니다.";
   document.querySelector("#planSummary").textContent = plan?.summary || "마이페이지에서 프로필을 저장하고 1RM을 입력해 주세요.";
   document.querySelector("#metricRow").innerHTML = (plan?.metrics || [])
-    .map(([label, value]) => `<span><strong>${value}</strong>${label}</span>`)
+    .map(([label, value]) => `<span><small>${label}</small><strong>${value}</strong></span>`)
     .join("");
 
   const currentWeek = plan?.weeks?.[selectedPlanWeek - 1];
   document.querySelector("#weekList").innerHTML = currentWeek
     ? `<article class="exercise-card week-compact">
-        <header><div><h3>${currentWeek[0]}: ${currentWeek[1]}</h3><p>${currentWeek[3]}</p></div><span class="badge">${currentWeek[2]}</span></header>
+        <header><div><h3>${selectedPlanWeek}주차: ${currentWeek.name}</h3><p>${currentWeek.note}</p></div><span class="badge">${currentWeek.range}</span></header>
       </article>`
     : "";
 
@@ -510,36 +582,37 @@ function renderPlan() {
 
   document.querySelector("#dateTabs").innerHTML = [0, 1, 2, 3, 4, 5, 6]
     .map((offset) => {
-      const date = addDays(new Date(), offset);
-      const label = planDayLabel(date, offset);
+      const date = addDays(new Date(), (selectedPlanWeek - 1) * 7 + offset);
+      const label = planDayLabel(date, offset, selectedPlanWeek);
       return `<button class="${offset === selectedPlanDayOffset ? "is-active" : ""}" type="button" data-offset="${offset}">
         <strong>${label}</strong><span>${date.getDate()}</span>
       </button>`;
     })
     .join("");
 
-  const selectedSession = pickPlanSession(plan, selectedPlanDayOffset);
+  const selectedSession = pickPlanSession(plan, selectedPlanWeek, selectedPlanDayOffset);
   document.querySelector("#programList").innerHTML = selectedSession
     ? renderSessionCard(selectedSession, selectedPlanWeek, selectedPlanDayOffset)
     : `<div class="empty-state">1RM을 입력하면 4주 블록과 오늘 세션이 생성됩니다.</div>`;
 }
 
 function renderSessionCard(session, week = selectedPlanWeek, dayOffset = selectedPlanDayOffset) {
-  const date = addDays(new Date(), dayOffset);
+  const date = addDays(new Date(), (week - 1) * 7 + dayOffset);
   return `<article class="exercise-card">
     <header><div><h3>${session.title}</h3><p>${week}주차 · ${date.getMonth() + 1}/${date.getDate()} · ${session.note}</p></div><span class="badge">${session.lifts.length} lifts</span></header>
     <div class="sets">${session.lifts.map(renderLiftSummary).join("") || `<p>입력된 1RM이 없어 처방을 만들 수 없습니다.</p>`}</div>
   </article>`;
 }
 
-function pickPlanSession(plan, offset) {
-  if (!plan?.sessions?.length) return null;
-  return plan.sessions[offset % plan.sessions.length];
+function pickPlanSession(plan, week, offset) {
+  const sessions = plan?.weekSessions?.[week - 1] || plan?.sessions || [];
+  if (!sessions.length) return null;
+  return sessions[offset % sessions.length];
 }
 
-function planDayLabel(date, offset) {
-  if (offset === 0) return "오늘";
-  if (offset === 1) return "내일";
+function planDayLabel(date, offset, week = 1) {
+  if (week === 1 && offset === 0) return "오늘";
+  if (week === 1 && offset === 1) return "내일";
   return ["일", "월", "화", "수", "목", "금", "토"][date.getDay()];
 }
 
@@ -553,6 +626,8 @@ function renderTodaySession() {
   const user = activeUser();
   const session = user.plan?.sessions?.[0];
   const isDone = Boolean(user.completedDates?.[isoDate(new Date())]);
+  const counts = todaySetCounts(session);
+  const allChecked = counts.total > 0 && counts.done === counts.total;
   document.querySelector("#todayHint").textContent = session?.note || "프로필과 1RM을 입력하면 오늘 진행할 세션이 생성됩니다.";
   document.querySelector("#todaySession").innerHTML = session
     ? session.lifts.map(renderTodayLift).join("")
@@ -560,6 +635,9 @@ function renderTodaySession() {
   const completeButton = document.querySelector("#completeSession");
   completeButton.textContent = session ? (isDone ? "오늘 완료됨" : "오늘 스트렝스 완료") : "1RM 입력하기";
   completeButton.classList.toggle("is-complete", isDone);
+  completeButton.disabled = Boolean(session) && (!allChecked || isDone);
+  completeButton.title = Boolean(session) && !allChecked ? "위 세트를 모두 체크하면 완료할 수 있습니다." : "";
+  document.querySelector("#undoCompleteSession").hidden = !isDone;
 }
 
 function renderTodayLift(lift) {
@@ -578,6 +656,26 @@ function renderTodayLift(lift) {
       })
       .join("")}</div>
   </section>`;
+}
+
+function todaySetCounts(session = activeUser().plan?.sessions?.[0]) {
+  const todayChecks = activeUser().todayChecks?.[isoDate(new Date())] || {};
+  const ids = (session?.lifts || []).flatMap((lift) => lift.sets.map((_, index) => `${lift.name}-${index}`));
+  return {
+    total: ids.length,
+    done: ids.filter((id) => todayChecks[id]).length,
+  };
+}
+
+function undoCompletion(date) {
+  const user = activeUser();
+  delete user.completedDates[date];
+  user.todayChecks = user.todayChecks || {};
+  delete user.todayChecks[date];
+  user.history = (user.history || []).filter((item) => item.isoDate !== date);
+  selectedCalendarDate = date;
+  saveState("완료를 취소했습니다.");
+  renderAll();
 }
 
 function renderHistory() {
@@ -620,6 +718,7 @@ function renderCalendarDetail() {
   detail.innerHTML = `<article class="exercise-card calendar-summary">
     <header><div><h3>${formatKoreanDate(selectedCalendarDate)}</h3><p>${item.title} · ${item.doneSets}/${item.totalSets} 세트 완료</p></div><span class="badge">완료</span></header>
     <div class="sets">${(item.lifts || []).map((lift) => `<div class="set-row"><strong>${lift.name}</strong><span>${lift.summary}</span><span>✓</span></div>`).join("") || `<div class="set-row"><strong>기록</strong><span>${item.title}</span><span>✓</span></div>`}</div>
+    <button class="calendar-undo" type="button" data-undo-date="${selectedCalendarDate}">완료 취소</button>
   </article>`;
 }
 
