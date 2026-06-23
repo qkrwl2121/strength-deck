@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#121212" />
+    <title>Strength Deck 업데이트 복구</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #121212;
+        color: #ffffff;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+        background: #121212;
+      }
+
+      main {
+        width: min(100%, 420px);
+        display: grid;
+        gap: 18px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 30px;
+        line-height: 1.1;
+      }
+
+      p {
+        margin: 0;
+        color: #b3b3b3;
+        line-height: 1.6;
+      }
+
+      button,
+      a {
+        min-height: 56px;
+        border: 0;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        font: inherit;
+        font-weight: 900;
+        text-decoration: none;
+      }
+
+      button {
+        background: #1ed760;
+        color: #000000;
+      }
+
+      a {
+        background: #242424;
+        color: #ffffff;
+      }
+
+      .status {
+        min-height: 24px;
+        color: #1ed760;
+        font-weight: 800;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div>
+        <p>Strength Deck</p>
+        <h1>업데이트 복구</h1>
+      </div>
+      <p>버튼이 눌리지 않거나 예전 화면이 계속 보일 때 사용합니다. 프로필과 1RM 같은 저장 데이터는 지우지 않고, 앱 파일 캐시만 새로 받게 만듭니다.</p>
+      <button id="repairButton" type="button">앱 업데이트 다시 받기</button>
+      <a href="./index.html">앱으로 돌아가기</a>
+      <p class="status" id="status"></p>
+    </main>
+
+    <script>
+      const status = document.querySelector("#status");
+
+      document.querySelector("#repairButton").addEventListener("click", async () => {
+        status.textContent = "업데이트 캐시를 정리하는 중...";
+
+        if ("serviceWorker" in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map((registration) => registration.unregister()));
+        }
+
+        if ("caches" in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((key) => caches.delete(key)));
+        }
+
+        status.textContent = "완료. 앱을 다시 여는 중...";
+        window.setTimeout(() => {
+          window.location.replace("./index.html?refresh=" + Date.now());
+        }, 600);
+      });
+    </script>
+  </body>
+</html>
